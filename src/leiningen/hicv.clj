@@ -237,7 +237,9 @@
 	  
 (defn hicv
   [project & [first-arg &rest-args]]
-  (pr project)
   (condp = first-arg
       "2html" (hic2html (:source-path project) (:target-hiccup project))
-      "2hic"  (html2hic-front)))
+      "2hic"  (html2hic-front)
+      (println "Usage:
+  lein hicv 2html
+  lein hicv 2hic\n")))
