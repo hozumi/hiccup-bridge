@@ -16,15 +16,12 @@ Generated html are not indented in current version. Indent it manually.
     <div id="session-info">
       <c-- clj="(if (logged-in?) $1 $2)">
       <div id="login-info">Logged in as <span id="username">
-        <c-- clj="(link-to (uri &quot;preferences&quot;)
-	                   (current-user-name req))" />
+        <c-- clj="(link-to (uri &quot;preferences&quot;) (current-user-name req))" />
         </span> <span class="button" id="logout-link">
-        <c-- clj="(link-to (.createLogoutURL (:user-service ui) (uri))
-	                 &quot;        Log out&quot;)" />
+        <c-- clj="(link-to (.createLogoutURL (:user-service ui) (uri)) &quot;Log out&quot;)" />
         </span></div>
       <div id="login-info"><span class="button" id="login-link">
-        <c-- clj="(link-to (.createLoginURL (:user-service ui)
-	           (uri &quot;preferences&quot;)) &quot;Log in&quot;)" />
+        <c-- clj="(link-to (.createLoginURL (:user-service ui) (uri &quot;preferences&quot;)) &quot;Log in&quot;)" />
         </span></div>
       </c-->
     </div>
