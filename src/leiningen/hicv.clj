@@ -15,6 +15,10 @@
 	   [java.io StringReader PushbackReader
 	    FileInputStream InputStreamReader LineNumberReader]))
 
+(cdef/defvar- *clj-tag* :c--)
+(cdef/defvar- *clj-attr-key* :clj)
+(cdef/defvar- *attr-code-prefix* "c--")
+
 (defn- mk-tag [tag {:keys [class id]}]
   (keyword
    (str (name tag)
@@ -34,18 +38,35 @@
 			 (swap! alst rest)
 			 fs)))))
 
+(defn read-from-str [s-str]
+  (with-open [pbr (-> s-str (StringReader.) (PushbackReader.))]
+    (read pbr)))
+
+(defn- attr-solve [attrs]
+  (reduce conj {}
+	  (map (fn [[k v]]
+		 [(if-let [[_ c] (re-matches
+				  (Pattern/compile (str *attr-code-prefix* "(\\.*)"))
+				  (name k))]
+			      (read-from-str c) k)
+		  (if-let [[_ c] (re-matches
+				  (Pattern/compile (str *attr-code-prefix* "(\\.*)"))
+				  v)]
+		    (read-from-str c) v)]) attrs)))
+
 (defn- html2hic* [node]
   (if (map? node)
     (let [{:keys [tag attrs content]} node
 	  tag (mk-tag tag attrs)
 	  attrs (dissoc attrs :class :id)
+	  attrs (attr-solve attrs)
 	  v (if (not (empty? attrs))
 	      [tag attrs] [tag])
 	  cnts (filter #(not (and (string? %)
 				  (re-matches #"\n\s*" %))) content)]
-      (if (and (= tag :c--)
-	       (:clj attrs))
-	(with-open [pbr (PushbackReader. (StringReader. (:clj attrs)))]
+      (if (and (= tag :*clj-tag*)
+	       (*clj-attr-key* attrs))
+	(with-open [pbr (PushbackReader. (StringReader. (*clj-attr-key* attrs)))]
 	  (let [s (read pbr)]
 	    (cond
 	     (seq? s)  (let [cntsstream (stream (map html2hic* cnts))]
@@ -62,10 +83,10 @@
   (let [[node] (en/html-resource resource)]
     (html2hic* node)))
 
-(declare logged-in? current-user-name uri)
+(declare logged-in? current-user-name uri attra *place*)
 (defn render-session-info [req]
   (let [ui {}]
-    [:div#session-info
+    [:div#session-info {attra *place*}
      (if (logged-in?)
        [:div#login-info "Logged in as "
         [:span#username (link-to (uri "preferences")
@@ -143,14 +164,22 @@
 		;;  (symbol (str "$" (swap! idx inc))) %)
 	;;node)))))
 
+(defn- attr-code [code]
+  (with-out-str
+    (print *attr-code-prefix*)
+    (pr code)))
+
 (defn- hic2vec* [node]
 ;;  (println node)
   (condp #(%1 %2) node
     seq?
     (reduce conj
-	    [(keyword "c--") {:clj (clj-attr node)}]
+	    [*clj-tag* {*clj-attr-key* (clj-attr node)}]
 	    (map hic2vec* (filter should-be-child? node)))
     html-node? (vec (map hic2vec* node))
+    map?  (reduce conj {}
+		  (map (fn [[k v]] [(if (keyword? k) k (keyword (attr-code k)))
+			    (if (string? v) v (attr-code v))]) node))
     node))
 
 (defn- hic2vec [fn-sym-or-s]

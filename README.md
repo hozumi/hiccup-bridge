@@ -30,7 +30,7 @@ Generated html are not indented in current version. Indent it manually.
     
 ### Html to hiccup function
     % lein hicv 2hic
-Htmls under "hicv" directory are conveted to hiccup node and pprinted into terminal.
+Htmls under "hicv" directory are converted to hiccup node and pprinted into terminal.
     
 ## Installation
 
