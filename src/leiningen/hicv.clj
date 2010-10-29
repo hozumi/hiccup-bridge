@@ -1,9 +1,12 @@
 (ns leiningen.hicv
   (:use [hiccup.page-helpers])
+  (:refer-clojure :exclude [pop!])
   (:require [net.cgrand.enlive-html :as en]
 	    [hiccup.core :as hic]
 	    [clojure.contrib.def :as cdef :only [defvar-]]
 	    [clojure.java.io :as io]
+	    [clojure.pprint :as pp]
+	    [hozumi.det-enc :as enc]
 	    [pattern-match :as pat]
 	    ;[hiccup.page-helpers :as hich])
 	    [org.satta.glob :as glob]
@@ -22,12 +25,12 @@
 		 (interleave (repeat ".")
 			     (re-seq #"\w+" class)))))))
 
-(defprotocol Stream (pop [this]))
+(defprotocol Stream (pop! [this]))
 
 (defn- stream [lst]
   (let [alst (atom lst)]
     (reify Stream
-	   (pop [this] (let [[fs] @alst]
+	   (pop! [this] (let [[fs] @alst]
 			 (swap! alst rest)
 			 fs)))))
 
@@ -48,7 +51,7 @@
 	     (seq? s)  (let [cntsstream (stream (map html2hic* cnts))]
 			 (map #(if (and (symbol? %)
 					(= \$ (first (str %))))
-				 (pop cntsstream) %)
+				 (pop! cntsstream) %)
 			      s));;(concat s (map html2hic* cnts))
 	     (coll? s) (reduce conj s (map html2hic* cnts))
 	     :else     s)))
@@ -133,7 +136,7 @@
   (with-out-str
     (pr (let [idxstream (stream (iterate inc 1))]
 	  (map #(if (should-be-child? %)
-		  (symbol (str "$" (pop idxstream))) %)
+		  (symbol (str "$" (pop! idxstream))) %)
 	       node)))))
 	;;(let [idx (atom 0)]
 	;;  (map #(if (should-be-child? %)
@@ -170,22 +173,17 @@
     (if-not (.exists f)
       (.mkdir f))))
 
-(defn- eof? [pbr]
-  (loop []
-    (let [i (.read pbr)]
-      (cond
-       (= i -1) true
-       (re-matches #"\s" (-> i char str)) (recur)
-       :else (do (.unread pbr i)
-		 false)))))
-
 (defn- list-s [path]
-  (with-open [pbr (-> path
-		      (FileInputStream.)
-		      (InputStreamReader.)
-		      (PushbackReader.))]
-    (doall (take-while #(not (nil? %))
-		       (repeatedly #(if (eof? pbr) nil (read pbr)))))))
+  (let [encoding (enc/detect path :default)]
+    (with-open [pbr (-> path
+			(FileInputStream.)
+			(InputStreamReader. encoding)
+			(PushbackReader.))]
+      (doall (take-while #(not (nil? %))
+			 (repeatedly
+			  #(try (read pbr)
+				(catch java.lang.Exception _
+				  nil))))))))
 
 (defn- ns2filename [ns-str & [fnname]]
   (let [ns-str (if fnname (str ns-str "." fnname) ns-str)
@@ -219,7 +217,6 @@
 		     (if-let [fn-name (and (should-be-child? exp)
 					   (get-name exp))]
 		       [(ns2filename (path2ns path src-path) fn-name) exp]))]
-    ;;(println s-exps-map)
     (reduce conj {}
 	    (filter #(not (nil? %))
 		    hic-fns))))
@@ -231,15 +228,16 @@
       (map #(do (spit (ns2filename %) (hic/html (hic2vec (symbol %))))
 		(ns2filename %)) sym-strs))
     (let [targets (search-hic src-path)]
-      (map (fn [[filename s-exp]]
-	     (do (spit filename (hic/html (hic2vec s-exp)))
-		 filename)) targets))))
+      (doall (map (fn [[filename s-exp]]
+		    (do (spit filename (hic/html (hic2vec s-exp)))
+			filename)) targets)))))
 
 (defn html2hic-front []
-  (doall (map (comp pprint html2hic) (.listFiles (io/file hicv-dir-name)))))
+  (doall (map (comp pp/pprint html2hic) (.listFiles (io/file hicv-dir-name)))))
 	  
 (defn hicv
   [project & [first-arg &rest-args]]
+  (pr project)
   (condp = first-arg
-      "2html" (hic2html (:src-path project) (:target-hiccup project))
+      "2html" (hic2html (:source-path project) (:target-hiccup project))
       "2hic"  (html2hic-front)))
