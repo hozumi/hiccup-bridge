@@ -24,9 +24,9 @@ The functions which include hiccup vector are gathered and converted to html fil
     <c-- clj="(render-session-info req)" /><c-- clj="(render-sidebar req)" /><h2 id="page-title">
     <c-- clj="(h title)" /></h2><div id="main-content">body</div><div class="clear"></div>
     </div></div></body></html></c--></c-->
-Generated html are not indented in current version. Indent manually.
-    <c-- clj="(defn render-page [req title &amp; body] &quot;Render a page using the given title and body.
-    Title will be escaped,\n  body will not.&quot; $1)">
+Generated html are not indented in current version. Indent it manually.
+    <c-- clj="(defn render-page [req title &amp; body] &quot;Render a page using the given
+    title and body. Title will be escaped,\n  body will not.&quot; $1)">
     <c-- clj="(html (doctype :html5) $1)">
     <html>
     <head>
