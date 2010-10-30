@@ -1,6 +1,4 @@
 (ns leiningen.hicv
-  (:use [hiccup.page-helpers])
-  (:use [clojure.contrib.classpath])
   (:refer-clojure :exclude [pop!])
   (:require [net.cgrand.enlive-html :as en]
 	    [hiccup.core :as hic]
@@ -9,16 +7,14 @@
 	    [clojure.pprint :as pp]
 	    [hozumi.det-enc :as enc]
 	    [pattern-match :as pat]
-	    ;[hiccup.page-helpers :as hich])
-	    [org.satta.glob :as glob]
-	    )
+	    [org.satta.glob :as glob])
   (:import [java.util.regex Pattern]
 	   [java.io StringReader PushbackReader
 	    FileInputStream InputStreamReader LineNumberReader]))
 
 (cdef/defvar- *clj-tag* :c--)
 (cdef/defvar- *clj-attr-key* :clj)
-(cdef/defvar- *attr-code-prefix* "c--")
+(cdef/defvar- *attr-code-prefix* "clj--")
 
 (defn- mk-tag [tag {:keys [class id]}]
   (keyword
@@ -35,11 +31,12 @@
 (defn- stream [lst]
   (let [alst (atom lst)]
     (reify Stream
-	   (pop! [this] (let [[fs] @alst]
-			 (swap! alst rest)
-			 fs)))))
+	   (pop! [this]
+		 (let [[fs] @alst]
+		   (swap! alst rest)
+		   fs)))))
 
-(defn read-from-str [s-str]
+(defn- read-from-str [s-str]
   (with-open [pbr (-> s-str StringReader. PushbackReader.)]
     (read pbr)))
 
@@ -139,17 +136,18 @@
     (pr code)))
 
 (defn- hic2vec* [node]
-;;  (println node)
   (condp #(%1 %2) node
     seq?
     (reduce conj
 	    [*clj-tag* {*clj-attr-key* (clj-attr node)}]
 	    (map hic2vec* (filter should-be-child? node)))
+    symbol? [*clj-tag* {*clj-attr-key* (str node)}]
+    
     html-node? (vec (map hic2vec* node))
-    map?  (reduce conj {}
-		  (map (fn [[k v]]
-			 [(if (keyword? k) k (keyword (attr-code k)))
-			  (if (string? v) v (attr-code v))]) node))
+    map? (reduce conj {}
+		 (map (fn [[k v]]
+			[(if (keyword? k) k (keyword (attr-code k)))
+			 (if (string? v) v (attr-code v))]) node))
     node))
 
 (defn- hic2vec [fn-sym-or-s]
@@ -245,7 +243,7 @@
   (let [nodes (-> resource en/html-resource first :content)]
     (map html2hic* nodes)))
 
-(defn html2hic-front []
+(defn- html2hic-front []
   (doall (map pp/pprint
 	      (filter #(not (and (string? %)
 				 (re-matches #"\n\s*" %)))
