@@ -79,10 +79,6 @@
 	(reduce conj v (map html2hic* cnts))))
     node))
 
-(defn- html2hic "doc" [resource]
-  (let [[node] (en/html-resource resource)]
-    (html2hic* node)))
-
 (defn- source2s
   [x]
   (when-let [v (resolve x)]
@@ -150,8 +146,9 @@
 	    (map hic2vec* (filter should-be-child? node)))
     html-node? (vec (map hic2vec* node))
     map?  (reduce conj {}
-		  (map (fn [[k v]] [(if (keyword? k) k (keyword (attr-code k)))
-			    (if (string? v) v (attr-code v))]) node))
+		  (map (fn [[k v]]
+			 [(if (keyword? k) k (keyword (attr-code k)))
+			  (if (string? v) v (attr-code v))]) node))
     node))
 
 (defn- hic2vec [fn-sym-or-s]
@@ -161,16 +158,10 @@
    (let [s (source2s fn-sym-or-s)]
      (hic2vec* s))))
 
-(defn- mk-sym-str [targets]
-;;  (do (apply use (map first targets))
-  (for [[nspace & res] targets
-	anfn res]
-    (str nspace "/" anfn)))
-
-(cdef/defvar- hicv-dir-name "hicv/")
+(cdef/defvar- *hicv-dir-name* "hicv/")
 
 (defn- prepare-hicv-dir! []
-  (let [f (io/file hicv-dir-name)]
+  (let [f (io/file *hicv-dir-name*)]
     (if-not (.exists f)
       (.mkdir f))))
 
@@ -180,18 +171,15 @@
 			(FileInputStream.)
 			(InputStreamReader. encoding)
 			(PushbackReader.))]
-      (doall (take-while #(not (nil? %))
+      (doall (take-while identity
 			 (repeatedly
 			  #(try (read pbr)
 				(catch java.lang.Exception _
 				  nil))))))))
 
-(defn- ns2filename [ns-str & [fnname]]
-  (let [ns-str (if fnname (str ns-str "." fnname) ns-str)
-	replaced (-> ns-str
-		     (.replaceAll "\\*" "(star)")
-		     (.replaceAll "/" "."))]
-    (str hicv-dir-name
+(defn- ns2filename [ns-str]
+  (let [replaced (.replaceAll ns-str "/" ".")]
+    (str *hicv-dir-name*
 	 replaced
 	 ".html")))
 
@@ -212,29 +200,36 @@
 
 (defn- search-hic [src-path]
   (let [cljs (glob/glob (str src-path "/**/*.clj") :s)
-	s-exps-map (reduce (fn [m path] (assoc m path (list-s path))) {} cljs)
-	hic-fns    (for [path (keys s-exps-map)
-			 exp  (s-exps-map path)]
-		     (if-let [fn-name (and (should-be-child? exp)
-					   (get-name exp))]
-		       [(ns2filename (path2ns path src-path) fn-name) exp]))]
-    (reduce conj {}
-	    (filter #(not (nil? %))
-		    hic-fns))))
+	hics-map (map (fn [path]
+			[(path2ns path src-path)
+			 (filter identity
+				 (map #(and (should-be-child? %)
+					    (get-name %)) (list-s path)))]) cljs)]
+    (filter (fn [[_ hics]] (not (empty? hics))) hics-map)))
+
+(defn- mk-syms [nspace hic-names]
+  (map #(symbol (str nspace "/" %)) hic-names))
 
 (defn- hic2html [src-path targets]
   (prepare-hicv-dir!)
-  (if targets
-    (let [sym-strs (mk-sym-str targets)]
-      (map #(do (spit (ns2filename %) (hic/html (hic2vec (symbol %))))
-		(ns2filename %)) sym-strs))
-    (let [targets (search-hic src-path)]
-      (doall (map (fn [[filename s-exp]]
-		    (do (spit filename (hic/html (hic2vec s-exp)))
-			filename)) targets)))))
+  (doseq [[nspace hics :as target] (if targets targets (search-hic src-path))]
+    (do (with-open [f (io/writer (ns2filename nspace))]
+	  (doto f (.write "<hicv />") (.newLine) (.newLine)));; (io/spit (ns2filename nspace) "<hicv />\n\n")
+	(doseq [hic (mk-syms nspace hics)]
+	  (with-open [f (io/writer (ns2filename nspace) :append true)]
+	    (doto f (.write (hic/html (hic2vec (symbol hic)))) (.newLine) (.newLine)))))))
+;;(println (io/append-spit (ns2filename nspace)
+;;(str (hic/html (hic2vec (symbol hic))) "\n\n\n")))))))
+
+(defn- html2hic [resource]
+  (let [nodes (-> resource en/html-resource first :content)]
+    (map html2hic* nodes)))
 
 (defn html2hic-front []
-  (doall (map (comp pp/pprint html2hic) (.listFiles (io/file hicv-dir-name)))))
+  (doall (map pp/pprint
+	      (filter #(not (and (string? %)
+				 (re-matches #"\n\s*" %)))
+		      (mapcat html2hic (.listFiles (io/file *hicv-dir-name*)))))))
 	  
 (defn hicv
   [project & [first-arg &rest-args]]
@@ -244,3 +239,32 @@
       (println "Usage:
   lein hicv 2html
   lein hicv 2hic\n")))
+
+(declare user-info logged-in? uri current-user-name ns-list)
+(defn render-session-info [req]
+  (let [ui (user-info)]
+    [:div#session-info
+     (if (logged-in?)
+       [:div#login-info "Logged in as "
+        [:span#username (link-to (uri "preferences")
+                                 (current-user-name req))] " "
+        [:span#logout-link.button
+         (link-to (.createLogoutURL (:user-service ui) (uri)) "Log out")]]
+       [:div#login-info
+        [:span#login-link.button
+         (link-to (.createLoginURL (:user-service ui) (uri "preferences"))
+                  "Log in")]])]))
+
+(defn render-sidebar [req]
+  [:div#sidebar
+   [:h3 "Namespaces"]
+   [:ul#ns-list
+    (for [ns ns-list]
+      [:li (link-to (uri ns) ns)])]
+   [:h3 "Meta"]
+   [:ul#meta
+    [:li (link-to (uri "changes") "Recent Changes")]
+    [:li (link-to (uri "guidelines") "Guidelines")]
+    [:li (link-to (uri "formatting") "Formatting")]
+    [:li (link-to (uri "todo") "To Do")]
+    [:li (link-to "http://github.com/jkk/clj-wiki" "Source Code")]]])
