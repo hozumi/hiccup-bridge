@@ -40,7 +40,7 @@
 			 fs)))))
 
 (defn read-from-str [s-str]
-  (with-open [pbr (-> s-str (StringReader.) (PushbackReader.))]
+  (with-open [pbr (-> s-str StringReader. PushbackReader.)]
     (read pbr)))
 
 (defn- attr-solve [attrs]
@@ -67,7 +67,7 @@
 				  (re-matches #"\n\s*" %))) content)]
       (if (and (= tag *clj-tag*)
 	       (*clj-attr-key* attrs))
-	(with-open [pbr (PushbackReader. (StringReader. (*clj-attr-key* attrs)))]
+	(with-open [pbr (-> attrs *clj-attr-key* StringReader. PushbackReader.)]
 	  (let [s (read pbr)]
 	    (cond
 	     (seq? s)  (let [cntsstream (stream (map html2hic* cnts))]
@@ -85,12 +85,12 @@
   (when-let [v (resolve x)]
     (when-let [filepath (:file (meta v))]
       (with-open [rdr (-> filepath
-			  (FileInputStream. ,,,)
-			  (InputStreamReader. ,,,)
-			  (LineNumberReader. ,,,))]
-	(dotimes [_ (dec (:line (meta v)))] (.readLine rdr))
+			  FileInputStream.
+			  InputStreamReader.
+			  LineNumberReader.)]
+	(dotimes [_ (-> v meta :line dec)] (.readLine rdr))
 	(with-open [pbr (PushbackReader. rdr)]
-	  (read (PushbackReader. pbr)))))))
+	  (read pbr))))))
 
 (defn- html-node? [s]
   (and (vector? s)
@@ -207,22 +207,39 @@
 	    [(path2ns file-path src-path)
 	     (filter identity
 		     (for [exp (list-s file-path)]
-		       (if (and (should-be-child? exp) (get-name exp))
-			 exp)))])))
+		       (if-let [n (and (should-be-child? exp) (get-name exp))]
+			 [n exp])))])))
 
 (defn- mk-syms [nspace hic-names]
   (map #(symbol (str nspace "/" %)) hic-names))
 
 (defn- hic2html [src-path targets]
   (prepare-hicv-dir!)
-  (doseq [[nspace exps] (search-hic src-path)]
-    (do (with-open [f (io/writer (ns2filename nspace))]
-	  (doto f (.write "<hicv />") (.newLine) (.newLine)));; (io/spit (ns2filename nspace) "<hicv />\n\n")
-	(with-open [f (io/writer (ns2filename nspace) :append true)]
-	  (doseq [exp exps]
-	    (doto f (.write (hic/html (hic2vec exp))) (.newLine) (.newLine)))))))
-;;(println (io/append-spit (ns2filename nspace)
-;;(str (hic/html (hic2vec (symbol hic))) "\n\n\n")))))))
+  (doseq [[nspace name&exps] (search-hic src-path)]
+    (do (with-open [f (-> nspace ns2filename io/writer)]
+	  (doto f
+	    (.write "<hicv />")
+	    (.newLine)
+	    (.newLine)))
+	(with-open [f (-> nspace ns2filename (io/writer ,,, :append true))]
+	  (doseq [[_ exp] name&exps]
+	    (doto f
+	      (.write (-> exp hic2vec hic/html))
+	      (.newLine)
+	      (.newLine)))))))
+
+(defn- hic2htmls [src-path targets]
+  (prepare-hicv-dir!)
+  (doseq [[nspace name&exps] (search-hic src-path)
+	  [nam exp] name&exps]
+    (with-open [f (-> (str nspace "." (name nam)) ns2filename io/writer)]
+      (doto f
+	(.write "<hicv />")
+	(.newLine)
+	(.newLine)
+	(.write (hic/html (hic2vec exp)))
+	(.newLine)
+	(.newLine)))))
 
 (defn- html2hic [resource]
   (let [nodes (-> resource en/html-resource first :content)]
@@ -238,9 +255,11 @@
   [project & [first-arg &rest-args]]
   (condp = first-arg
       "2html" (hic2html (:source-path project) (:target-hiccup project))
+      "2htmls" (hic2htmls (:source-path project) (:target-hiccup project))
       "2hic"  (html2hic-front)
       (println "Usage:
   lein hicv 2html
+  lein hicv 2htmls
   lein hicv 2hic\n")))
 
 (declare user-info logged-in? uri current-user-name ns-list)
