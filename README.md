@@ -11,7 +11,7 @@ The functions which include hiccup vector are gathered and converted to html fil
     -rw-r--r--  1 fatrow  staff   434 10 30 00:37 your.app.namespace.view1.html
     -rw-r--r--  1 fatrow  staff   895 10 30 00:37 your.app.namespace.view2.html
 Files are created at each namespace file.
-If you want to separate file, use *2htmls*
+If you want to separate file, use **2htmls**
     % lein hicv 2htmls
     % ls -l hicv
     -rw-r--r--  1 fatrow  staff   434 10 30 00:37 your.app.namespace.view1.render-sidebar.html
@@ -36,8 +36,8 @@ Generated html are not indented in current version. Indent it manually.
     </div>
     </c-->
     </c-->
-Clojure code are wrapped by c-- tag.
-*Example*
+Clojure code are wrapped by c-- tag.<br>
+***Example***
     (defn page [x]
       (if x
         [:p#mypage x]
