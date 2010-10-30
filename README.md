@@ -7,10 +7,19 @@ Hiccup-bridge is a conversion tool between html and the functions which include 
 ### Hiccup function to html
     % lein hicv 2html
 The functions which include hiccup vector are gathered and converted to html files under "hicv" directory.
-    % ls -l hicv         
-    -rw-r--r--  1 fatrow  staff   434 10 30 00:37 your.app.namespace.render-sidebar.html
-    -rw-r--r--  1 fatrow  staff   895 10 30 00:37 your.app.namespace.render-page.html
+    % ls -l hicv
+    -rw-r--r--  1 fatrow  staff   434 10 30 00:37 your.app.namespace.view1.html
+    -rw-r--r--  1 fatrow  staff   895 10 30 00:37 your.app.namespace.view2.html
+Files are created at each namespace.
+If you want to separate file, use *2htmls*
+    % lein hicv 2htmls
+    % ls -l hicv
+    -rw-r--r--  1 fatrow  staff   434 10 30 00:37 your.app.namespace.view1.render-sidebar.html
+    -rw-r--r--  1 fatrow  staff   895 10 30 00:37 your.app.namespace.view1.render-page.html
+    -rw-r--r--  1 fatrow  staff   895 10 30 00:37 your.app.namespace.view2.render-my-page.html
 Generated html are not indented in current version. Indent it manually.
+    <hicv />
+
     <c-- clj="(defn render-session-info [req] $1)">
     <c-- clj="(let [ui (users/user-info)] $1)">
     <div id="session-info">
@@ -27,7 +36,23 @@ Generated html are not indented in current version. Indent it manually.
     </div>
     </c-->
     </c-->
-    
+Clojure code are wrapped by c-- tag.
+*Example*
+    (defn page [x]
+      (if x
+        [:p#mypage x]
+        [:p#otherpage x]))
+Above code will be converted like bellow.
+    <hicv />
+
+    <c-- clj="(defn page [x] $1)">
+      <c-- clj="(if x $1 $2)">
+        <p id="mypage">x</p>
+        <p id="otherpage">x</p>
+      </c-->
+    </c-->
+Hicv tag in the head is a little hack for internal parser.
+
 ### Html to hiccup function
     % lein hicv 2hic
 Htmls under "hicv" directory are converted to hiccup node and pprinted into terminal.
