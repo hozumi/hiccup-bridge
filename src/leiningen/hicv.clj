@@ -1,5 +1,6 @@
 (ns leiningen.hicv
   (:use [hiccup.page-helpers])
+  (:use [clojure.contrib.classpath])
   (:refer-clojure :exclude [pop!])
   (:require [net.cgrand.enlive-html :as en]
 	    [hiccup.core :as hic]
@@ -64,7 +65,7 @@
 	      [tag attrs] [tag])
 	  cnts (filter #(not (and (string? %)
 				  (re-matches #"\n\s*" %))) content)]
-      (if (and (= tag :*clj-tag*)
+      (if (and (= tag *clj-tag*)
 	       (*clj-attr-key* attrs))
 	(with-open [pbr (PushbackReader. (StringReader. (*clj-attr-key* attrs)))]
 	  (let [s (read pbr)]
@@ -196,28 +197,30 @@
 		   (str src-path \/))
 	p (Pattern/compile (str src-path "(.*)\\.clj"))
 	[_ n] (re-matches p path)]
-    (.replaceAll n "/" ".")))
+    (-> n
+	(.replaceAll ,,, "_" "-")
+	(.replaceAll ,,, "/" "."))))
 
 (defn- search-hic [src-path]
-  (let [cljs (glob/glob (str src-path "/**/*.clj") :s)
-	hics-map (map (fn [path]
-			[(path2ns path src-path)
-			 (filter identity
-				 (map #(and (should-be-child? %)
-					    (get-name %)) (list-s path)))]) cljs)]
-    (filter (fn [[_ hics]] (not (empty? hics))) hics-map)))
+  (filter (fn [[_ hics]] (not (empty? hics)))
+	  (for [file-path (glob/glob (str src-path "/**/*.clj") :s)]
+	    [(path2ns file-path src-path)
+	     (filter identity
+		     (for [exp (list-s file-path)]
+		       (if (and (should-be-child? exp) (get-name exp))
+			 exp)))])))
 
 (defn- mk-syms [nspace hic-names]
   (map #(symbol (str nspace "/" %)) hic-names))
 
 (defn- hic2html [src-path targets]
   (prepare-hicv-dir!)
-  (doseq [[nspace hics :as target] (if targets targets (search-hic src-path))]
+  (doseq [[nspace exps] (search-hic src-path)]
     (do (with-open [f (io/writer (ns2filename nspace))]
 	  (doto f (.write "<hicv />") (.newLine) (.newLine)));; (io/spit (ns2filename nspace) "<hicv />\n\n")
-	(doseq [hic (mk-syms nspace hics)]
-	  (with-open [f (io/writer (ns2filename nspace) :append true)]
-	    (doto f (.write (hic/html (hic2vec (symbol hic)))) (.newLine) (.newLine)))))))
+	(with-open [f (io/writer (ns2filename nspace) :append true)]
+	  (doseq [exp exps]
+	    (doto f (.write (hic/html (hic2vec exp))) (.newLine) (.newLine)))))))
 ;;(println (io/append-spit (ns2filename nspace)
 ;;(str (hic/html (hic2vec (symbol hic))) "\n\n\n")))))))
 
@@ -230,7 +233,7 @@
 	      (filter #(not (and (string? %)
 				 (re-matches #"\n\s*" %)))
 		      (mapcat html2hic (.listFiles (io/file *hicv-dir-name*)))))))
-	  
+
 (defn hicv
   [project & [first-arg &rest-args]]
   (condp = first-arg
