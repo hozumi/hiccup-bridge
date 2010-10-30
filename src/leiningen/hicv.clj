@@ -169,9 +169,9 @@
 (defn- list-s [path]
   (let [encoding (enc/detect path :default)]
     (with-open [pbr (-> path
-			(FileInputStream.)
+			FileInputStream.
 			(InputStreamReader. encoding)
-			(PushbackReader.))]
+			PushbackReader.)]
       (doall (take-while identity
 			 (repeatedly
 			  #(try (read pbr)
@@ -261,32 +261,3 @@
   lein hicv 2html
   lein hicv 2htmls
   lein hicv 2hic\n")))
-
-(declare user-info logged-in? uri current-user-name ns-list)
-(defn render-session-info [req]
-  (let [ui (user-info)]
-    [:div#session-info
-     (if (logged-in?)
-       [:div#login-info "Logged in as "
-        [:span#username (link-to (uri "preferences")
-                                 (current-user-name req))] " "
-        [:span#logout-link.button
-         (link-to (.createLogoutURL (:user-service ui) (uri)) "Log out")]]
-       [:div#login-info
-        [:span#login-link.button
-         (link-to (.createLoginURL (:user-service ui) (uri "preferences"))
-                  "Log in")]])]))
-
-(defn render-sidebar [req]
-  [:div#sidebar
-   [:h3 "Namespaces"]
-   [:ul#ns-list
-    (for [ns ns-list]
-      [:li (link-to (uri ns) ns)])]
-   [:h3 "Meta"]
-   [:ul#meta
-    [:li (link-to (uri "changes") "Recent Changes")]
-    [:li (link-to (uri "guidelines") "Guidelines")]
-    [:li (link-to (uri "formatting") "Formatting")]
-    [:li (link-to (uri "todo") "To Do")]
-    [:li (link-to "http://github.com/jkk/clj-wiki" "Source Code")]]])
