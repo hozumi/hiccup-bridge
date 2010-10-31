@@ -26,15 +26,16 @@
 		 (interleave (repeat ".")
 			     (re-seq #"\w+" class)))))))
 
-(defprotocol Stream (pop! [this]))
-
-(defn- stream [lst]
-  (let [alst (atom lst)]
-    (reify Stream
-	   (pop! [this]
-		 (let [[fs] @alst]
-		   (swap! alst rest)
-		   fs)))))
+(defn- replace-when [pred coll replacements]
+  (lazy-seq
+   (when (seq coll)
+     (if (seq replacements)
+       (if (pred (first coll))
+	 (cons (first replacements)
+	       (replace-when pred (rest coll) (rest replacements)))
+	 (cons (first coll)
+	       (replace-when pred (rest coll) replacements)))
+       coll))))
 
 (defn- read-from-str [s-str]
   (with-open [pbr (-> s-str StringReader. PushbackReader.)]
@@ -54,11 +55,9 @@
 
 (defn- html2hic* [node]
   (letfn [(into-it [s cnts]
-		   (let [cntsstream (stream (map html2hic* cnts))]
-		     (map #(if (and (symbol? %)
-				    (= \$ (first (str %))))
-			     (pop! cntsstream) %)
-			  s)))]
+		   (replace-when #(and (symbol? %)
+				       (= \$ (first (str %))))
+				 s (map html2hic* cnts)))]
     (if (map? node)
       (let [{:keys [tag attrs content]} node
 	    tag (mk-tag tag attrs)
@@ -98,7 +97,6 @@
 
 (defn- tree-search [pred node]
   (letfn [(inner [s q]
-		 ;;(println s :q q)
 		 (if-let [v (pred s)]
 		   v
 		   (cond
@@ -124,10 +122,9 @@
 
 (defn- clj-attr [node]
   (with-out-str
-    (pr (let [idxstream (stream (iterate inc 1))
-	      ans (map #(if (should-be-child? %)
-			  (symbol (str "$" (pop! idxstream))) %)
-		       node)]
+    (pr (let [ans (replace-when should-be-child?
+				node
+				(map #(symbol (str "$" %)) (iterate inc 1)))]
 	  (if (vector? node)
 	    (vec ans) ans)))))
 
