@@ -40,17 +40,17 @@ Clojure code are wrapped by c-- tag.<br>
 ***Example***
     (defn page [x]
       (if x
-        [:p#mypage x]
-        [:p#otherpage x]))
+        [:p#mypage "Hello"]
+        [:p#otherpage "Bye"]))
 Above code will be converted like bellow.
-    <hicv />
+<hicv />
 
-    <c-- clj="(defn page [x] $1)">
-      <c-- clj="(if x $1 $2)">
-        <p id="mypage">x</p>
-        <p id="otherpage">x</p>
-      </c-->
-    </c-->
+<c-- clj="(defn page [x] $1)">
+  <c-- clj="(if x $1 $2)">
+    <p id="mypage">Hello</p>
+    <p id="otherpage">Bye</p>
+  </c-->
+</c-->
 Hicv tag in the head is a little hack for internal parser.
 
 ### Html to hiccup function
