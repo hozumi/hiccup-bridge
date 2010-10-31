@@ -44,11 +44,11 @@
   (reduce conj {}
 	  (map (fn [[k v]]
 		 [(if-let [[_ c] (re-matches
-				  (Pattern/compile (str *attr-code-prefix* "(\\.*)"))
+				  (Pattern/compile (str *attr-code-prefix* "(.*)"))
 				  (name k))]
 			      (read-from-str c) k)
 		  (if-let [[_ c] (re-matches
-				  (Pattern/compile (str *attr-code-prefix* "(\\.*)"))
+				  (Pattern/compile (str *attr-code-prefix* "(.*)"))
 				  v)]
 		    (read-from-str c) v)]) attrs)))
 
@@ -243,18 +243,20 @@
   (let [nodes (-> resource en/html-resource first :content)]
     (map html2hic* nodes)))
 
-(defn- html2hic-front []
+(defn- html2hic-front [& [file-names]]
   (doall (map pp/pprint
 	      (filter #(not (and (string? %)
 				 (re-matches #"\n\s*" %)))
-		      (mapcat html2hic (.listFiles (io/file *hicv-dir-name*)))))))
+		      (mapcat html2hic (if (empty? file-names)
+					 (.listFiles (io/file *hicv-dir-name*))
+					 (map #(str *hicv-dir-name* %) file-names)))))))
 
 (defn hicv
-  [project & [first-arg &rest-args]]
+  [project & [first-arg & rest-args]]
   (condp = first-arg
       "2html" (hic2html (:source-path project) (:target-hiccup project))
       "2htmls" (hic2htmls (:source-path project) (:target-hiccup project))
-      "2hic"  (html2hic-front)
+      "2hic"  (html2hic-front rest-args)
       (println "Usage:
   lein hicv 2html
   lein hicv 2htmls
