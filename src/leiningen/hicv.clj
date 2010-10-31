@@ -53,29 +53,32 @@
 		    (read-from-str c) v)]) attrs)))
 
 (defn- html2hic* [node]
-  (if (map? node)
-    (let [{:keys [tag attrs content]} node
-	  tag (mk-tag tag attrs)
-	  attrs (dissoc attrs :class :id)
-	  attrs (attr-solve attrs)
-	  v (if (not (empty? attrs))
-	      [tag attrs] [tag])
-	  cnts (filter #(not (and (string? %)
-				  (re-matches #"\n\s*" %))) content)]
-      (if (and (= tag *clj-tag*)
-	       (*clj-attr-key* attrs))
-	(with-open [pbr (-> attrs *clj-attr-key* StringReader. PushbackReader.)]
-	  (let [s (read pbr)]
-	    (cond
-	     (seq? s)  (let [cntsstream (stream (map html2hic* cnts))]
-			 (map #(if (and (symbol? %)
-					(= \$ (first (str %))))
-				 (pop! cntsstream) %)
-			      s));;(concat s (map html2hic* cnts))
-	     (coll? s) (reduce conj s (map html2hic* cnts))
-	     :else     s)))
-	(reduce conj v (map html2hic* cnts))))
-    node))
+  (letfn [(into-it [s cnts]
+		   (let [cntsstream (stream (map html2hic* cnts))]
+		     (map #(if (and (symbol? %)
+				    (= \$ (first (str %))))
+			     (pop! cntsstream) %)
+			  s)))]
+    (if (map? node)
+      (let [{:keys [tag attrs content]} node
+	    tag (mk-tag tag attrs)
+	    attrs (dissoc attrs :class :id)
+	    attrs (attr-solve attrs)
+	    v (if (not (empty? attrs))
+		[tag attrs] [tag])
+	    cnts (filter #(not (and (string? %)
+				    (re-matches #"\n\s*" %))) content)]
+	(if (and (= tag *clj-tag*)
+		 (*clj-attr-key* attrs))
+	  (with-open [pbr (-> attrs *clj-attr-key* StringReader. PushbackReader.)]
+	    (let [s (read pbr)]
+	      (cond
+	       (seq? s)  (into-it s cnts)
+	       (vector? s) (vec (into-it s cnts));;(reduce conj s (map html2hic* cnts))
+	       (coll? s) (reduce conj s (map html2hic* cnts))
+	       :else     s)))
+	  (reduce conj v (map html2hic* cnts))))
+      node)))
 
 (defn- source2s
   [x]
@@ -121,14 +124,12 @@
 
 (defn- clj-attr [node]
   (with-out-str
-    (pr (let [idxstream (stream (iterate inc 1))]
-	  (map #(if (should-be-child? %)
-		  (symbol (str "$" (pop! idxstream))) %)
-	       node)))))
-	;;(let [idx (atom 0)]
-	;;  (map #(if (should-be-child? %)
-		;;  (symbol (str "$" (swap! idx inc))) %)
-	;;node)))))
+    (pr (let [idxstream (stream (iterate inc 1))
+	      ans (map #(if (should-be-child? %)
+			  (symbol (str "$" (pop! idxstream))) %)
+		       node)]
+	  (if (vector? node)
+	    (vec ans) ans)))))
 
 (defn- attr-code [code]
   (with-out-str
@@ -144,6 +145,8 @@
     symbol? [*clj-tag* {*clj-attr-key* (str node)}]
     
     html-node? (vec (map hic2vec* node))
+    vector? (reduce conj [*clj-tag* {*clj-attr-key* (clj-attr node)}]
+			 (map hic2vec* (filter should-be-child? node)))
     map? (reduce conj {}
 		 (map (fn [[k v]]
 			[(if (keyword? k) k (keyword (attr-code k)))
@@ -240,16 +243,20 @@
 	(.newLine)))))
 
 (defn- html2hic [resource]
-  (let [nodes (-> resource en/html-resource first :content)]
+  (let [encoding (enc/detect resource :default)
+	nodes (-> resource
+		  FileInputStream.
+		  (InputStreamReader. encoding)
+		  en/html-resource first :content)]
     (map html2hic* nodes)))
 
-(defn- html2hic-front [& [file-names]]
+(defn- html2hic-front [file-names]
   (doall (map pp/pprint
 	      (filter #(not (and (string? %)
 				 (re-matches #"\n\s*" %)))
 		      (mapcat html2hic (if (empty? file-names)
-					 (.listFiles (io/file *hicv-dir-name*))
-					 (map #(str *hicv-dir-name* %) file-names)))))))
+					 (-> *hicv-dir-name* io/file .listFiles)
+					 file-names))))))
 
 (defn hicv
   [project & [first-arg & rest-args]]
