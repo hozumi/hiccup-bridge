@@ -56,7 +56,12 @@ Hicv tag in the head is a little hack for internal parser.
 ### Html to hiccup function
     % lein hicv 2hic
 Htmls under "hicv" directory are converted to hiccup node and pprinted into terminal.
-    
+    % lein hicv 2hic 
+    (defn page [x] (if x [:p#mypage "Hello"] [:p#otherpage "Bye"]))
+You can specify files you want to print.
+    % lein hicv 2hic hicv/leiningen.hicv.html 
+    (defn page [x] (if x [:p#mypage "Hello"] [:p#otherpage "Bye"]))
+
 ## Installation
 
 Leiningen
