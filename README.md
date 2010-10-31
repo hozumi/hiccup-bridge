@@ -59,7 +59,7 @@ Htmls under "hicv" directory are converted to hiccup node and pprinted into term
     % lein hicv 2hic 
     (defn page [x] (if x [:p#mypage "Hello"] [:p#otherpage "Bye"]))
 You can specify files you want to print.
-    % lein hicv 2hic hicv/leiningen.hicv.html 
+    % lein hicv 2hic hicv/your.app.namespace.view.html 
     (defn page [x] (if x [:p#mypage "Hello"] [:p#otherpage "Bye"]))
 
 ## Installation
