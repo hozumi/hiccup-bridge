@@ -1,140 +1,21 @@
 (ns leiningen.hicv
-  (:refer-clojure :exclude [pop!])
   (:require [net.cgrand.enlive-html :as en]
             [hiccup.core :as hic]
             [clojure.java.io :as io]
             [clojure.pprint :as pp]
             [hozumi.det-enc :as enc]
             [org.satta.glob :as glob])
-  (:import [java.util.regex Pattern]
-           [java.io StringReader PushbackReader
+  (:import [java.io StringReader PushbackReader
             FileInputStream InputStreamReader LineNumberReader]))
 
-(def ^{:private true} clj-tag :c--)
-(def ^{:private true} clj-attr-key :clj)
-(def ^{:private true} attr-code-prefix "clj--")
-(def ^{:private true} hicv-dir-name "hicv/")
+(def ^{:private true} hicv-dir-name "hicv")
 
-(defn- mk-tag [tag {:keys [class id]}]
-  (keyword
-   (str (name tag)
-        (when id
-          (str "#" id))
-        (when class
-          (apply str
-                 (interleave (repeat ".")
-                             (re-seq #"\w+" class)))))))
-
-(def ^{:private true} attr-code-prefix-pattern
-  (Pattern/compile (str attr-code-prefix "(.*)")))
-
-(defn- attr-solve [attrs]
-  (into {}
-        (map (fn [[k v]]
-               [(if-let [[_ c] (re-matches attr-code-prefix-pattern (name k))]
-                  (read-string c) k)
-                (if-let [[_ c] (re-matches attr-code-prefix-pattern v)]
-                  (read-string c) v)]) attrs)))
-
-(defn- replace-when [pred coll replacements]
-  (lazy-seq
-   (when (seq coll)
-     (if (seq replacements)
-       (if (pred (first coll))
-         (cons (first replacements)
-               (replace-when pred (rest coll) (rest replacements)))
-         (cons (first coll)
-               (replace-when pred (rest coll) replacements)))
-       coll))))
-
-(defn- html2hic* [node]
-  (letfn [(into-it [s cnts]
-            (replace-when #(and (symbol? %)
-                                (= \$ (first (str %))))
-                          s (map html2hic* cnts)))]
-    (if (map? node)
-      (let [{:keys [tag attrs content]} node
-            tag (mk-tag tag attrs)
-            attrs (dissoc attrs :class :id)
-            attrs (attr-solve attrs)
-            v (if (empty? attrs) [tag] [tag attrs])
-            cnts (filter #(not (and (string? %)
-                                    (re-matches #"\n\s*" %))) content)]
-        (if (and (= tag clj-tag)
-                 (clj-attr-key attrs))
-          (let [s (read-string (clj-attr-key attrs))]
-            (cond
-             (seq? s)  (into-it s cnts)
-             (vector? s) (vec (into-it s cnts)) ;;(reduce conj s (map html2hic* cnts))
-             (coll? s) (reduce conj s (map html2hic* cnts))
-             :else     s))
-          (reduce conj v (map html2hic* cnts))))
-      node)))
-
-(defn- html-node? [s]
-  (and (vector? s)
-       (keyword? (first s))))
-
-(defn- tree-search [pred node]
-  (letfn [(inner [s q]
-            (if-let [v (pred s)]
-              v
-              (cond
-               (map? s)
-               (let [[fs & res] (reduce conj q
-                                        (concat (keys s)
-                                                (vals s)))]
-                 (recur fs (vec res)))
-
-               (coll? s)
-               (let [[fs & res] (reduce conj q s)]
-                 (recur fs (vec res)))
-
-               :else
-               (if (empty? q)
-                 nil
-                 (recur (first q) (vec (rest q)))))))]
-    (inner node [])))
-
-(defn- should-be-child? [node]
-  (tree-search html-node? node))
-;;(or (seq? node) (html-node? node)))
-
-(defn- clj-attr [node]
-  (with-out-str
-    (pr (let [ans (replace-when should-be-child?
-                                node
-                                (map #(symbol (str "$" %)) (iterate inc 1)))]
-          (if (vector? node)
-            (vec ans) ans)))))
-
-(defn- attr-code [code]
-  (with-out-str
-    (print attr-code-prefix)
-    (pr code)))
-
-(defn- hic2vec [node]
-  (condp #(%1 %2) node
-    seq? (reduce conj
-                 [clj-tag {clj-attr-key (clj-attr node)}]
-                 (map hic2vec (filter should-be-child? node)))
-    symbol? [clj-tag {clj-attr-key (str node)}]
-
-    html-node? (vec (map hic2vec node))
-    vector? (reduce conj [clj-tag {clj-attr-key (clj-attr node)}]
-                    (map hic2vec (filter should-be-child? node)))
-    map? (into {}
-               (map (fn [[k v]]
-                      [(if (keyword? k) k (keyword (attr-code k)))
-                       (if (string? v) v (attr-code v))]) node))
-    node))
-
-(defn- prepare-hicv-dir! []
+(defn- ensure-hicv-dir! []
   (let [f (io/file hicv-dir-name)]
     (if-not (.exists f)
       (.mkdir f))))
 
-(defn- list-s [path]
+#_(defn- list-s [path]
   (let [encoding (enc/detect path :default)]
     (with-open [pbr (-> path
                         FileInputStream.
@@ -146,72 +27,95 @@
                                 (catch java.lang.Exception _
                                   nil))))))))
 
-(defn- ns2filename [ns-str]
-  (let [replaced (.replaceAll ns-str "/" ".")]
-    (str hicv-dir-name
-         replaced
-         ".html")))
+(defn- remove-extension [file-path]
+  (if-let [[_ pure-file-path] (re-matches #"(.*)\..*" file-path)]
+    pure-file-path
+    file-path))
 
-(defn- path2ns [path src-path]
-  (let [src-path (if (= \/ (last src-path))
-                   src-path
-                   (str src-path \/))
-        p (Pattern/compile (str src-path "(.*)\\.clj"))
-        [_ n] (re-matches p path)]
-    (-> n
-        (.replaceAll ,,, "_" "-")
-        (.replaceAll ,,, "/" "."))))
+(defn- replace-extension [file-path extension]
+  (-> file-path remove-extension (str ,,, extension)))
 
-(defn- search-hic [src-path]
-  (filter (fn [[_ hics]] (not (empty? hics)))
-          (for [file-path (glob/glob (str src-path "/**/*.clj") :s)]
-            [(path2ns file-path src-path)
-             (filter identity
-                     (for [exp (list-s file-path)]
-                       (when (should-be-child? exp)
-                         exp)))])))
+(defn- writeout-hiccup2html [file-path]
+  (spit (replace-extension file-path ".html")
+        (-> (slurp file-path :encoding (enc/detect file-path :default))
+            read-string
+            hic/html)))
 
-(defn- mk-syms [nspace hic-names]
-  (map #(symbol (str nspace "/" %)) hic-names))
+(defn- hiccups2htmls [file-paths]
+  (ensure-hicv-dir!)
+  (let [file-paths (if (empty? file-paths)
+                     (glob/glob (str hicv-dir-name "/**/*.clj") :s)
+                     file-paths)]
+    (dorun
+     (map writeout-hiccup2html file-paths))))
 
-(defn- hic2html [src-path]
-  (prepare-hicv-dir!)
-  (doseq [[nspace exps] (search-hic src-path)]
-    (with-open [f (-> nspace ns2filename io/writer)]
-      (doto f
-        (.write "<hicv />")
-        (.newLine)
-        (.newLine))
-      (doseq [exp exps]
-        (when (seq? exp)
-          (doto f
-            (.write (-> exp hic2vec hic/html))
-            (.newLine)
-            (.newLine)))))))
+(defn- mk-tag [tag {:keys [class id]}]
+  (keyword
+   (str (name tag)
+        (when id
+          (str "#" id))
+        (when class
+          (apply str
+                 (interleave (repeat ".")
+                             (re-seq #"\w+" class)))))))
 
-(defn- html2hic [file]
-  (let [encoding (enc/detect file :default)
-        nodes (-> file
-                  FileInputStream.
-                  (InputStreamReader. encoding)
-                  en/html-resource first :content)]
-    (map html2hic* nodes)))
+(defn- enlive-node2hiccup [node]
+  (if (map? node)
+    (let [{:keys [tag attrs content]} node
+          tag (mk-tag tag attrs)
+          attrs (dissoc attrs :class :id)
+          hiccup-form (if (empty? attrs) [tag] [tag attrs])
+          cnts (filter #(not (and (string? %)
+                                  (re-matches #"\n\s*" %))) content)]
+      (reduce conj hiccup-form (map enlive-node2hiccup cnts)))
+    node))
 
-(defn- html2hic-front [file-names]
-  (doall
-   (map pp/pprint
-        (filter #(not (and (string? %)
-                           (re-matches #"\n\s*" %)))
-                (mapcat html2hic (if (empty? file-names)
-                                   (-> hicv-dir-name io/file .listFiles)
-                                   (map io/file file-names))))))
-  (.flush *out*))
+(defn- url? [s]
+  (re-matches #"https?://.*" s))
+
+(defn- get-resource [resource-path]
+  (if (url? resource-path)
+    (java.net.URL. resource-path)
+    (io/reader resource-path :encoding (enc/detect resource-path :default))))
+
+(defn- html2hiccup [resource-path]
+  (let [nodes (-> resource-path
+                  get-resource
+                  en/html-resource)]
+    (->> (map enlive-node2hiccup nodes)
+         (filter #(not (and (string? %)
+                            (re-matches #"\n\s*" %))) ,,,))))
+
+(defn- ensure-under-hicv-dir [^String resource-path]
+  (if (url? resource-path)
+    (apply str hicv-dir-name "/" (replace {\/ \_} resource-path))
+    (if (.startsWith resource-path hicv-dir-name)
+      resource-path
+      (str hicv-dir-name "/"
+           (or (re-find #"[^/]*$" resource-path) ;;"/ab/cd.html" => "cd.html"
+               "out.html")))))
+
+(defn- writeout-html2hiccup [resource-path]
+  (println "hello" resource-path)
+  (spit (replace-extension (ensure-under-hicv-dir resource-path) ".clj")
+        (-> resource-path
+            html2hiccup
+            pp/pprint
+            with-out-str)))
+
+(defn- htmls2hiccups [resource-paths]
+  (ensure-hicv-dir!)
+  (let [resource-paths (if (empty? resource-paths)
+                     (glob/glob (str hicv-dir-name "/**/*.html") :s)
+                     resource-paths)]
+    (dorun
+     (map writeout-html2hiccup resource-paths))))
 
 (defn hicv
   [project & [first-arg & rest-args]]
   (condp = first-arg
-    "2html" (hic2html (:source-path project))
-    "2hic"  (html2hic-front rest-args)
+    "2html" (hiccups2htmls rest-args)
+    "2hic"  (htmls2hiccups rest-args)
     (println "Usage:
   lein hicv 2html
   lein hicv 2hic\n")))
