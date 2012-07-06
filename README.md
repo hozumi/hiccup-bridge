@@ -1,6 +1,6 @@
 # Hiccup-bridge
 
-Hiccup-bridge is a conversion tool between html and the functions which include hiccup vector.
+Hiccup-bridge is a conversion tool between html and the functions which include hiccup vector. This is an experimental project and unreliable.
 
 ***Example***
 
