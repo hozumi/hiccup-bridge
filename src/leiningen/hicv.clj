@@ -5,7 +5,6 @@
             [clojure.java.io :as io]
             [clojure.pprint :as pp]
             [hozumi.det-enc :as enc]
-            [pattern-match :as pat]
             [org.satta.glob :as glob])
   (:import [java.util.regex Pattern]
            [java.io StringReader PushbackReader
@@ -26,6 +25,17 @@
                  (interleave (repeat ".")
                              (re-seq #"\w+" class)))))))
 
+(def ^{:private true} attr-code-prefix-pattern
+  (Pattern/compile (str attr-code-prefix "(.*)")))
+
+(defn- attr-solve [attrs]
+  (into {}
+        (map (fn [[k v]]
+               [(if-let [[_ c] (re-matches attr-code-prefix-pattern (name k))]
+                  (read-string c) k)
+                (if-let [[_ c] (re-matches attr-code-prefix-pattern v)]
+                  (read-string c) v)]) attrs)))
+
 (defn- replace-when [pred coll replacements]
   (lazy-seq
    (when (seq coll)
@@ -37,22 +47,6 @@
                (replace-when pred (rest coll) replacements)))
        coll))))
 
-(defn- read-from-str [s-str]
-  (with-open [pbr (-> s-str StringReader. PushbackReader.)]
-    (read pbr)))
-
-(defn- attr-solve [attrs]
-  (reduce conj {}
-          (map (fn [[k v]]
-                 [(if-let [[_ c] (re-matches
-                                  (Pattern/compile (str attr-code-prefix "(.*)"))
-                                  (name k))]
-                    (read-from-str c) k)
-                  (if-let [[_ c] (re-matches
-                                  (Pattern/compile (str attr-code-prefix "(.*)"))
-                                  v)]
-                    (read-from-str c) v)]) attrs)))
-
 (defn- html2hic* [node]
   (letfn [(into-it [s cnts]
             (replace-when #(and (symbol? %)
@@ -63,33 +57,19 @@
             tag (mk-tag tag attrs)
             attrs (dissoc attrs :class :id)
             attrs (attr-solve attrs)
-            v (if (not (empty? attrs))
-                [tag attrs] [tag])
+            v (if (empty? attrs) [tag] [tag attrs])
             cnts (filter #(not (and (string? %)
                                     (re-matches #"\n\s*" %))) content)]
         (if (and (= tag clj-tag)
                  (clj-attr-key attrs))
-          (with-open [pbr (-> attrs clj-attr-key StringReader. PushbackReader.)]
-            (let [s (read pbr)]
-              (cond
-               (seq? s)  (into-it s cnts)
-               (vector? s) (vec (into-it s cnts));;(reduce conj s (map html2hic* cnts))
-               (coll? s) (reduce conj s (map html2hic* cnts))
-               :else     s)))
+          (let [s (read-string (clj-attr-key attrs))]
+            (cond
+             (seq? s)  (into-it s cnts)
+             (vector? s) (vec (into-it s cnts)) ;;(reduce conj s (map html2hic* cnts))
+             (coll? s) (reduce conj s (map html2hic* cnts))
+             :else     s))
           (reduce conj v (map html2hic* cnts))))
       node)))
-
-(defn- source2s
-  [x]
-  (when-let [v (resolve x)]
-    (when-let [filepath (:file (meta v))]
-      (with-open [rdr (-> filepath
-                          FileInputStream.
-                          InputStreamReader.
-                          LineNumberReader.)]
-        (dotimes [_ (-> v meta :line dec)] (.readLine rdr))
-        (with-open [pbr (PushbackReader. rdr)]
-          (read pbr))))))
 
 (defn- html-node? [s]
   (and (vector? s)
@@ -133,28 +113,21 @@
     (print attr-code-prefix)
     (pr code)))
 
-(defn- hic2vec* [node]
+(defn- hic2vec [node]
   (condp #(%1 %2) node
     seq? (reduce conj
                  [clj-tag {clj-attr-key (clj-attr node)}]
-                 (map hic2vec* (filter should-be-child? node)))
+                 (map hic2vec (filter should-be-child? node)))
     symbol? [clj-tag {clj-attr-key (str node)}]
 
-    html-node? (vec (map hic2vec* node))
+    html-node? (vec (map hic2vec node))
     vector? (reduce conj [clj-tag {clj-attr-key (clj-attr node)}]
-                    (map hic2vec* (filter should-be-child? node)))
-    map? (reduce conj {}
-                 (map (fn [[k v]]
-                        [(if (keyword? k) k (keyword (attr-code k)))
-                         (if (string? v) v (attr-code v))]) node))
+                    (map hic2vec (filter should-be-child? node)))
+    map? (into {}
+               (map (fn [[k v]]
+                      [(if (keyword? k) k (keyword (attr-code k)))
+                       (if (string? v) v (attr-code v))]) node))
     node))
-
-(defn- hic2vec [fn-sym-or-s]
-  (cond
-   (seq? fn-sym-or-s) (hic2vec* fn-sym-or-s)
-   (symbol? fn-sym-or-s)
-   (let [s (source2s fn-sym-or-s)]
-     (hic2vec* s))))
 
 (defn- prepare-hicv-dir! []
   (let [f (io/file hicv-dir-name)]
@@ -204,21 +177,21 @@
 (defn- hic2html [src-path]
   (prepare-hicv-dir!)
   (doseq [[nspace exps] (search-hic src-path)]
-    (do (with-open [f (-> nspace ns2filename io/writer)]
+    (with-open [f (-> nspace ns2filename io/writer)]
+      (doto f
+        (.write "<hicv />")
+        (.newLine)
+        (.newLine))
+      (doseq [exp exps]
+        (when (seq? exp)
           (doto f
-            (.write "<hicv />")
+            (.write (-> exp hic2vec hic/html))
             (.newLine)
-            (.newLine)))
-        (with-open [f (-> nspace ns2filename (io/writer ,,, :append true))]
-          (doseq [exp exps]
-            (doto f
-              (.write (-> exp hic2vec hic/html))
-              (.newLine)
-              (.newLine)))))))
+            (.newLine)))))))
 
-(defn- html2hic [resource]
-  (let [encoding (enc/detect resource :default)
-        nodes (-> resource
+(defn- html2hic [file]
+  (let [encoding (enc/detect file :default)
+        nodes (-> file
                   FileInputStream.
                   (InputStreamReader. encoding)
                   en/html-resource first :content)]
@@ -231,7 +204,8 @@
                            (re-matches #"\n\s*" %)))
                 (mapcat html2hic (if (empty? file-names)
                                    (-> hicv-dir-name io/file .listFiles)
-                                   file-names))))))
+                                   (map io/file file-names))))))
+  (.flush *out*))
 
 (defn hicv
   [project & [first-arg & rest-args]]
