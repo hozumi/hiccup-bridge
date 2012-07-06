@@ -96,7 +96,6 @@
                "out.html")))))
 
 (defn- writeout-html2hiccup [resource-path]
-  (println "hello" resource-path)
   (spit (replace-extension (ensure-under-hicv-dir resource-path) ".clj")
         (-> resource-path
             html2hiccup
