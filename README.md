@@ -2,27 +2,6 @@
 
 Hiccup-bridge is a conversion tool between html and the functions which include hiccup vector.
 
-## Usage
-
-### Hiccup function to html
-
-    % lein hicv 2html
-
-The functions which include hiccup vector are gathered from source files and converted to html files under "hicv" directory.
-
-    % ls -l hicv
-    -rw-r--r--  1 fatrow  staff   434 10 30 00:37 your.app.namespace.view1.html
-    -rw-r--r--  1 fatrow  staff   895 10 30 00:37 your.app.namespace.view2.html
-
-Files are created at each namespace file.
-If you want to separate file, use **2htmls**
-
-    % lein hicv 2htmls
-    % ls -l hicv
-    -rw-r--r--  1 fatrow  staff   434 10 30 00:37 your.app.namespace.view1.render-sidebar.html
-    -rw-r--r--  1 fatrow  staff   895 10 30 00:37 your.app.namespace.view1.render-page.html
-    -rw-r--r--  1 fatrow  staff   895 10 30 00:37 your.app.namespace.view2.render-my-page.html
-
 ***Example***
 
 ```clojure
@@ -45,9 +24,30 @@ Above code will be converted like bellow.
 </c-->
 ```
 
-Generated html are not indented in current version. Indent it manually.
-Hicv tag in the head is a little hack for internal parser.
+Generated html are not indented in current version. Indent it manually.<br>
+Hicv tag in the head is a little hack for internal parser.<br>
 Clojure code are wrapped by c-- tag.<br>
+
+## Usage
+
+### Hiccup function to html
+
+    % lein hicv 2html
+
+The functions which include hiccup vector are gathered from source files and converted to html files under "hicv" directory.
+
+    % ls -l hicv
+    -rw-r--r--  1 fatrow  staff   434 10 30 00:37 your.app.namespace.view1.html
+    -rw-r--r--  1 fatrow  staff   895 10 30 00:37 your.app.namespace.view2.html
+
+Files are created at each namespace file.
+If you want to separate file, use **2htmls**
+
+    % lein hicv 2htmls
+    % ls -l hicv
+    -rw-r--r--  1 fatrow  staff   434 10 30 00:37 your.app.namespace.view1.render-sidebar.html
+    -rw-r--r--  1 fatrow  staff   895 10 30 00:37 your.app.namespace.view1.render-page.html
+    -rw-r--r--  1 fatrow  staff   895 10 30 00:37 your.app.namespace.view2.render-my-page.html
 
 ### Html to hiccup function
 
