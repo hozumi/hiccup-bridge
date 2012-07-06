@@ -41,13 +41,6 @@ The functions which include hiccup vector are gathered from source files and con
     -rw-r--r--  1 fatrow  staff   895 10 30 00:37 your.app.namespace.view2.html
 
 Files are created at each namespace file.
-If you want to separate file, use **2htmls**
-
-    % lein hicv 2htmls
-    % ls -l hicv
-    -rw-r--r--  1 fatrow  staff   434 10 30 00:37 your.app.namespace.view1.render-sidebar.html
-    -rw-r--r--  1 fatrow  staff   895 10 30 00:37 your.app.namespace.view1.render-page.html
-    -rw-r--r--  1 fatrow  staff   895 10 30 00:37 your.app.namespace.view2.render-my-page.html
 
 ### Html to hiccup function
 

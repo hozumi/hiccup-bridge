@@ -181,13 +181,6 @@
          replaced
          ".html")))
 
-(defn- get-name [exp]
-  (let [expanded (macroexpand exp)]
-    (pat/match expanded
-               v :when (not (coll? v)) nil
-               [fs x & _] :when (= fs 'def) x
-               _ nil)))
-
 (defn- path2ns [path src-path]
   (let [src-path (if (= \/ (last src-path))
                    src-path
@@ -204,39 +197,26 @@
             [(path2ns file-path src-path)
              (filter identity
                      (for [exp (list-s file-path)]
-                       (if-let [n (and (should-be-child? exp) (get-name exp))]
-                         [n exp])))])))
+                       (when (should-be-child? exp)
+                         exp)))])))
 
 (defn- mk-syms [nspace hic-names]
   (map #(symbol (str nspace "/" %)) hic-names))
 
-(defn- hic2html [src-path targets]
+(defn- hic2html [src-path]
   (prepare-hicv-dir!)
-  (doseq [[nspace name&exps] (search-hic src-path)]
+  (doseq [[nspace exps] (search-hic src-path)]
     (do (with-open [f (-> nspace ns2filename io/writer)]
           (doto f
             (.write "<hicv />")
             (.newLine)
             (.newLine)))
         (with-open [f (-> nspace ns2filename (io/writer ,,, :append true))]
-          (doseq [[_ exp] name&exps]
+          (doseq [exp exps]
             (doto f
               (.write (-> exp hic2vec hic/html))
               (.newLine)
               (.newLine)))))))
-
-(defn- hic2htmls [src-path targets]
-  (prepare-hicv-dir!)
-  (doseq [[nspace name&exps] (search-hic src-path)
-          [nam exp] name&exps]
-    (with-open [f (-> (str nspace "." (name nam)) ns2filename io/writer)]
-      (doto f
-        (.write "<hicv />")
-        (.newLine)
-        (.newLine)
-        (.write (hic/html (hic2vec exp)))
-        (.newLine)
-        (.newLine)))))
 
 (defn- html2hic [resource]
   (let [encoding (enc/detect resource :default)
@@ -258,10 +238,8 @@
 (defn hicv
   [project & [first-arg & rest-args]]
   (condp = first-arg
-    "2html" (hic2html (:source-path project) (:target-hiccup project))
-    "2htmls" (hic2htmls (:source-path project) (:target-hiccup project))
+    "2html" (hic2html (:source-path project))
     "2hic"  (html2hic-front rest-args)
     (println "Usage:
   lein hicv 2html
-  lein hicv 2htmls
   lein hicv 2hic\n")))
