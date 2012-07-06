@@ -2,7 +2,6 @@
   (:refer-clojure :exclude [pop!])
   (:require [net.cgrand.enlive-html :as en]
             [hiccup.core :as hic]
-            [clojure.contrib.def :as cdef :only [defvar-]]
             [clojure.java.io :as io]
             [clojure.pprint :as pp]
             [hozumi.det-enc :as enc]
@@ -12,9 +11,10 @@
            [java.io StringReader PushbackReader
             FileInputStream InputStreamReader LineNumberReader]))
 
-(cdef/defvar- *clj-tag* :c--)
-(cdef/defvar- *clj-attr-key* :clj)
-(cdef/defvar- *attr-code-prefix* "clj--")
+(def ^{:private true} clj-tag :c--)
+(def ^{:private true} clj-attr-key :clj)
+(def ^{:private true} attr-code-prefix "clj--")
+(def ^{:private true} hicv-dir-name "hicv/")
 
 (defn- mk-tag [tag {:keys [class id]}]
   (keyword
@@ -45,11 +45,11 @@
   (reduce conj {}
           (map (fn [[k v]]
                  [(if-let [[_ c] (re-matches
-                                  (Pattern/compile (str *attr-code-prefix* "(.*)"))
+                                  (Pattern/compile (str attr-code-prefix "(.*)"))
                                   (name k))]
                     (read-from-str c) k)
                   (if-let [[_ c] (re-matches
-                                  (Pattern/compile (str *attr-code-prefix* "(.*)"))
+                                  (Pattern/compile (str attr-code-prefix "(.*)"))
                                   v)]
                     (read-from-str c) v)]) attrs)))
 
@@ -67,9 +67,9 @@
                 [tag attrs] [tag])
             cnts (filter #(not (and (string? %)
                                     (re-matches #"\n\s*" %))) content)]
-        (if (and (= tag *clj-tag*)
-                 (*clj-attr-key* attrs))
-          (with-open [pbr (-> attrs *clj-attr-key* StringReader. PushbackReader.)]
+        (if (and (= tag clj-tag)
+                 (clj-attr-key attrs))
+          (with-open [pbr (-> attrs clj-attr-key StringReader. PushbackReader.)]
             (let [s (read pbr)]
               (cond
                (seq? s)  (into-it s cnts)
@@ -130,18 +130,18 @@
 
 (defn- attr-code [code]
   (with-out-str
-    (print *attr-code-prefix*)
+    (print attr-code-prefix)
     (pr code)))
 
 (defn- hic2vec* [node]
   (condp #(%1 %2) node
     seq? (reduce conj
-                 [*clj-tag* {*clj-attr-key* (clj-attr node)}]
+                 [clj-tag {clj-attr-key (clj-attr node)}]
                  (map hic2vec* (filter should-be-child? node)))
-    symbol? [*clj-tag* {*clj-attr-key* (str node)}]
+    symbol? [clj-tag {clj-attr-key (str node)}]
 
     html-node? (vec (map hic2vec* node))
-    vector? (reduce conj [*clj-tag* {*clj-attr-key* (clj-attr node)}]
+    vector? (reduce conj [clj-tag {clj-attr-key (clj-attr node)}]
                     (map hic2vec* (filter should-be-child? node)))
     map? (reduce conj {}
                  (map (fn [[k v]]
@@ -156,10 +156,8 @@
    (let [s (source2s fn-sym-or-s)]
      (hic2vec* s))))
 
-(cdef/defvar- *hicv-dir-name* "hicv/")
-
 (defn- prepare-hicv-dir! []
-  (let [f (io/file *hicv-dir-name*)]
+  (let [f (io/file hicv-dir-name)]
     (if-not (.exists f)
       (.mkdir f))))
 
@@ -177,7 +175,7 @@
 
 (defn- ns2filename [ns-str]
   (let [replaced (.replaceAll ns-str "/" ".")]
-    (str *hicv-dir-name*
+    (str hicv-dir-name
          replaced
          ".html")))
 
@@ -232,7 +230,7 @@
         (filter #(not (and (string? %)
                            (re-matches #"\n\s*" %)))
                 (mapcat html2hic (if (empty? file-names)
-                                   (-> *hicv-dir-name* io/file .listFiles)
+                                   (-> hicv-dir-name io/file .listFiles)
                                    file-names))))))
 
 (defn hicv
