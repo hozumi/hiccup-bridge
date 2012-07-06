@@ -8,7 +8,7 @@ Hiccup-bridge is a conversion tool between html and the functions which include 
 
     % lein hicv 2html
 
-The functions which include hiccup vector are gathered and converted to html files under "hicv" directory.
+The functions which include hiccup vector are gathered from source files and converted to html files under "hicv" directory.
 
     % ls -l hicv
     -rw-r--r--  1 fatrow  staff   434 10 30 00:37 your.app.namespace.view1.html
@@ -22,31 +22,6 @@ If you want to separate file, use **2htmls**
     -rw-r--r--  1 fatrow  staff   434 10 30 00:37 your.app.namespace.view1.render-sidebar.html
     -rw-r--r--  1 fatrow  staff   895 10 30 00:37 your.app.namespace.view1.render-page.html
     -rw-r--r--  1 fatrow  staff   895 10 30 00:37 your.app.namespace.view2.render-my-page.html
-
-Generated html are not indented in current version. Indent it manually.
-
-```html
-<hicv />
-
-<c-- clj="(defn render-session-info [req] $1)">
-<c-- clj="(let [ui (users/user-info)] $1)">
-<div id="session-info">
-  <c-- clj="(if (logged-in?) $1 $2)">
-  <div id="login-info">Logged in as <span id="username">
-    <c-- clj="(link-to (uri &quot;preferences&quot;) (current-user-name req))" />
-    </span> <span class="button" id="logout-link">
-    <c-- clj="(link-to (.createLogoutURL (:user-service ui) (uri)) &quot;Log out&quot;)" />
-    </span></div>
-  <div id="login-info"><span class="button" id="login-link">
-    <c-- clj="(link-to (.createLoginURL (:user-service ui) (uri &quot;preferences&quot;)) &quot;Log in&quot;)" />
-    </span></div>
-  </c-->
-</div>
-</c-->
-</c-->
-```
-
-Clojure code are wrapped by c-- tag.<br>
 
 ***Example***
 
@@ -70,7 +45,9 @@ Above code will be converted like bellow.
 </c-->
 ```
 
+Generated html are not indented in current version. Indent it manually.
 Hicv tag in the head is a little hack for internal parser.
+Clojure code are wrapped by c-- tag.<br>
 
 ### Html to hiccup function
 
