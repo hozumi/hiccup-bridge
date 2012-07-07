@@ -59,7 +59,7 @@ You can specify files you want to convert.
 
     % lein hicv 2hic hicv/hello.html
 
-### Hiccup function to html
+### Hiccup to Html
 
     % lein hicv 2html
 
