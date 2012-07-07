@@ -61,13 +61,16 @@
 
 (defn- enlive-node2hiccup [node]
   (if (map? node)
-    (let [{:keys [tag attrs content]} node
-          tag (mk-tag tag attrs)
-          attrs (dissoc attrs :class :id)
-          hiccup-form (if (empty? attrs) [tag] [tag attrs])
-          cnts (filter #(not (and (string? %)
-                                  (re-matches #"\n\s*" %))) content)]
-      (reduce conj hiccup-form (map enlive-node2hiccup cnts)))
+    ;; for comment node {:type :comment, :data "[if IE]> ..."}
+    (if (= :comment (:type node))
+      (str "<!--" (:data node) "-->")
+      (let [{:keys [tag attrs content]} node
+            tag (mk-tag tag attrs)
+            attrs (dissoc attrs :class :id)
+            hiccup-form (if (empty? attrs) [tag] [tag attrs])
+            cnts (filter #(not (and (string? %)
+                                    (re-matches #"\n\s*" %))) content)]
+        (reduce conj hiccup-form (map enlive-node2hiccup cnts))))
     node))
 
 (defn- url? [s]
