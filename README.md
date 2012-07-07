@@ -4,7 +4,7 @@ Hiccup-bridge is a conversion tool between plain html and plain Hiccup form.
 
 ***Example***
 
-    hicv/hello.html
+`hicv/hello.html`
 
 ```html
 <html>
@@ -20,7 +20,7 @@ Hiccup-bridge is a conversion tool between plain html and plain Hiccup form.
 
 Above HTML will be converted to following and vice versa.
 
-    hicv/hello.clj
+`hicv/hello.clj`
 
 ```clojure
 ([:html
