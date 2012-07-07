@@ -117,7 +117,7 @@
   [project & [first-arg & rest-args]]
   (condp = first-arg
     "2html" (hiccups2htmls rest-args)
-    "2hic"  (htmls2hiccups rest-args)
+    "2clj"  (htmls2hiccups rest-args)
     (println "Usage:
   lein hicv 2html
-  lein hicv 2hic\n")))
+  lein hicv 2clj\n")))

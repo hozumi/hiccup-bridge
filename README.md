@@ -35,10 +35,11 @@ Above HTML will be converted to following and vice versa.
 
 ### Html to Hiccup
 
-    % lein hicv 2hic
+    % lein hicv 2clj
 
-All HTML files under "hicv" directory are converted to Hiccup form.
-For example:
+All HTML files under "hicv" directory are converted to Hiccup form.<br>
+
+***Example***
 
 ```
 % mkdir hicv
@@ -47,7 +48,7 @@ For example:
 total 48
 -rw-r--r--  1 fatrow  staff  22239  7  7 09:14 github.html
 %
-% lein hicv 2hic
+% lein hicv 2clj
 %
 % ls -l hicv
 total 96
@@ -57,11 +58,13 @@ total 96
 
 You can specify files you want to convert.
 
-    % lein hicv 2hic hicv/hello.html
+    % lein hicv 2clj hicv/hello.html
 
 ### Hiccup to Html
 
     % lein hicv 2html
+
+***Example***
 
 ```
 % ls -l hicv
