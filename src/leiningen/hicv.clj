@@ -35,7 +35,7 @@
     (dorun
      (map writeout-hiccup2html file-paths))))
 
-(defn- mk-tag [tag {:keys [class id]}]
+(defn- id&class-tag [tag {:keys [class id]}]
   (keyword
    (str (name tag)
         (when id
@@ -51,7 +51,7 @@
     (if (= :comment (:type node))
       (str "<!--" (:data node) "-->")
       (let [{:keys [tag attrs content]} node
-            tag (mk-tag tag attrs)
+            tag (id&class-tag tag attrs)
             attrs (dissoc attrs :class :id)
             hiccup-form (if (empty? attrs) [tag] [tag attrs])
             cnts (filter #(not (and (string? %)
