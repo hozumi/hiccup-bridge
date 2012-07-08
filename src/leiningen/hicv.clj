@@ -42,7 +42,8 @@
           (str "#" id))
         (when class
           (apply str
-                 (interpose \. (re-seq #"\w+" class)))))))
+                 (interleave (repeat ".")
+                             (re-seq #"\w+" class)))))))
 
 (defn- enlive-node2hiccup [node]
   (if (map? node)
