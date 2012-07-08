@@ -4,9 +4,7 @@
             [clojure.java.io :as io]
             [clojure.pprint :as pp]
             [hozumi.det-enc :as enc]
-            [org.satta.glob :as glob])
-  (:import [java.io StringReader PushbackReader
-            FileInputStream InputStreamReader LineNumberReader]))
+            [org.satta.glob :as glob]))
 
 (def ^{:private true} hicv-dir-name "hicv")
 
@@ -14,18 +12,6 @@
   (let [f (io/file hicv-dir-name)]
     (if-not (.exists f)
       (.mkdir f))))
-
-#_(defn- list-s [path]
-  (let [encoding (enc/detect path :default)]
-    (with-open [pbr (-> path
-                        FileInputStream.
-                        (InputStreamReader. encoding)
-                        PushbackReader.)]
-      (doall (take-while identity
-                         (repeatedly
-                          #(try (read pbr)
-                                (catch java.lang.Exception _
-                                  nil))))))))
 
 (defn- remove-extension [file-path]
   (if-let [[_ pure-file-path] (re-matches #"(.*)\..*" file-path)]
