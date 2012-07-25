@@ -14,7 +14,9 @@
   (is (= :img#myid (#'hicv/id&class-tag "img" {:id "myid"})))
   (is (= :img#myid.myclass (#'hicv/id&class-tag "img" {:id "myid" :class "myclass"})))
   (is (= :img#myid.myclass1.myclass2
-         (#'hicv/id&class-tag "img" {:id "myid" :class "myclass1 myclass2"}))))
+         (#'hicv/id&class-tag "img" {:id "myid" :class "myclass1 myclass2"})))
+  (is (= :img.foo.bar-foo
+         (#'hicv/id&class-tag "img" {:class "foo bar-foo"}))))
 
 (deftest ensure-under-hicv-dir-test
   (is (= "hicv/aaa.html" (#'hicv/ensure-under-hicv-dir "hicv/aaa.html")))

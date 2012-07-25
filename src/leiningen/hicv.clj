@@ -43,7 +43,7 @@
         (when class
           (apply str
                  (interleave (repeat ".")
-                             (re-seq #"\w+" class)))))))
+                             (re-seq #"[^ ]+" class)))))))
 
 (defn- enlive-node2hiccup [node]
   (if (map? node)
