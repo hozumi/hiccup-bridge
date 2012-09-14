@@ -1,4 +1,5 @@
 (ns leiningen.hicv
+  "Convert html into hiccup and vice verse"
   (:require [net.cgrand.enlive-html :as en]
             [hiccup.core :as hic]
             [clojure.java.io :as io]
@@ -100,6 +101,7 @@
      (map writeout-html2hiccup resource-paths))))
 
 (defn ^:no-project-needed hicv
+  "Convert html into hiccup and vice verse"
   [project & [first-arg & rest-args]]
   (condp = first-arg
     "2html" (hiccups2htmls rest-args)
