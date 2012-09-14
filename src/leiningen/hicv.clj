@@ -99,7 +99,7 @@
     (dorun
      (map writeout-html2hiccup resource-paths))))
 
-(defn hicv
+(defn ^:no-project-needed hicv
   [project & [first-arg & rest-args]]
   (condp = first-arg
     "2html" (hiccups2htmls rest-args)
