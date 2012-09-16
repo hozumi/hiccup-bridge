@@ -1,4 +1,4 @@
-(defproject hicv "1.0.0"
+(defproject hicv "1.0.0-SNAPSHOT"
   :description "Hiccup to html, html to hiccup."
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [org.clojars.hozumi/clj-glob "0.1.2"]
