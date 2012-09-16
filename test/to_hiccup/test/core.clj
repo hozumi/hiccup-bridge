@@ -26,4 +26,8 @@
          (ensure-under-hicv-dir "http://google.com/aaa"))))
 
 (deftest html->hiccup-test
-  (is (= '([:foo [:bar "bazz"]]) (html->hiccup "<foo><bar>bazz</bar></foo>"))))
+  (is (= '([:foo [:bar "buzz"]]) (html->hiccup "<foo><bar>buzz</bar></foo>")))
+  (is (= '([:foo#me.class1.class2 [:bar "buzz"]])
+         (html->hiccup (str "<foo id=\"me\" class=\"class1 class2\">"
+                            "<bar>buzz</bar>"
+                            "</foo>")))))
