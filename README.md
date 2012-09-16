@@ -32,7 +32,15 @@ Above HTML will be converted to following and vice versa.
 ```
 
 ## Usage
+### As a library
+Add `[hicv "1.0.0"]` to your project dependencies, then:
 
+```clojure
+(use '[to-hiccup.core :only [html->hiccup]])
+
+(html->hiccup "<foo><bar>buzz</bar></foo>")
+;; -> ([:foo [:bar "buzz"]])
+```
 ### Html to Hiccup
 
     % lein hicv 2clj
@@ -78,9 +86,7 @@ total 88
 -rw-r--r--  1 fatrow  staff  18622  7  7 09:19 github.html    <- generated
 ```
 
-## Installation
-
-Leiningen
-
-    % lein plugin install org.clojars.hozumi/hiccup-bridge 1.0.0-SNAPSHOT
-
+## Installation to Leiningen
+```bash
+% lein plugin install hicv 1.0.0
+```
