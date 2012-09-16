@@ -1,26 +1,29 @@
-(ns leiningen.hicv-test
-  (:use clojure.test)
-  (:require [leiningen.hicv :as hicv]))
+(ns to-hiccup.test.core
+  (:use clojure.test
+        to-hiccup.core))
 
 (deftest replace-extension-test
   (is (= "hicv/aaa.html"
-         (#'hicv/replace-extension "hicv/aaa.clj" ".html")))
+         (replace-extension "hicv/aaa.clj" ".html")))
   (is (= "hicv/aaa/bbb.clj"
-         (#'hicv/replace-extension "hicv/aaa/bbb.html" ".clj"))))
+         (replace-extension "hicv/aaa/bbb.html" ".clj"))))
 
-(deftest id&class-tag-test
-  (is (= :img (#'hicv/id&class-tag "img" {})))
-  (is (= :img.myclass (#'hicv/id&class-tag "img" {:class "myclass"})))
-  (is (= :img#myid (#'hicv/id&class-tag "img" {:id "myid"})))
-  (is (= :img#myid.myclass (#'hicv/id&class-tag "img" {:id "myid" :class "myclass"})))
+(deftest add-id&classes->tag-test
+  (is (= :img (add-id&classes->tag "img" {})))
+  (is (= :img.myclass (add-id&classes->tag "img" {:class "myclass"})))
+  (is (= :img#myid (add-id&classes->tag "img" {:id "myid"})))
+  (is (= :img#myid.myclass
+         (add-id&classes->tag "img" {:id "myid" :class "myclass"})))
   (is (= :img#myid.myclass1.myclass2
-         (#'hicv/id&class-tag "img" {:id "myid" :class "myclass1 myclass2"})))
+         (add-id&classes->tag "img" {:id "myid" :class "myclass1 myclass2"})))
   (is (= :img.foo.bar-foo
-         (#'hicv/id&class-tag "img" {:class "foo bar-foo"}))))
+         (add-id&classes->tag "img" {:class "foo bar-foo"}))))
 
 (deftest ensure-under-hicv-dir-test
-  (is (= "hicv/aaa.html" (#'hicv/ensure-under-hicv-dir "hicv/aaa.html")))
-  (is (= "hicv/bbb.html" (#'hicv/ensure-under-hicv-dir "/aaa/bbb.html")))
+  (is (= "hicv/aaa.html" (ensure-under-hicv-dir "hicv/aaa.html")))
+  (is (= "hicv/bbb.html" (ensure-under-hicv-dir "/aaa/bbb.html")))
   (is (= "hicv/http:__google.com_aaa"
-         (#'hicv/ensure-under-hicv-dir "http://google.com/aaa"))))
+         (ensure-under-hicv-dir "http://google.com/aaa"))))
 
+(deftest html->hiccup-test
+  (is (= '([:foo [:bar "bazz"]]) (html->hiccup "<foo><bar>bazz</bar></foo>"))))
