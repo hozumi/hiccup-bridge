@@ -90,3 +90,12 @@ total 88
 ```bash
 % lein plugin install hiccup-bridge 1.0.0-SNAPSHOT
 ```
+
+## License
+
+The source code for hiccup-bridge is available under the Eclipse
+Public License v 1.0.
+
+For more information, see epl-v10.html.
+
+(c) Copyright: Takahiro Hozumi and Hoang Minh Thang.
