@@ -1,6 +1,6 @@
-(ns to-hiccup.test.core
+(ns hiccup-bridge.test.core
   (:use clojure.test
-        to-hiccup.core))
+        hiccup-bridge.core))
 
 (deftest replace-extension-test
   (is (= "hicv/aaa.html"
