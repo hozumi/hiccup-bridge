@@ -36,9 +36,9 @@ Above HTML will be converted to following and vice versa.
 Add `[hiccup-bridge "1.0.0-SNAPSHOT"]` to your project dependencies, then:
 
 ```clojure
-(use '[to-hiccup.core :only [html->hiccup]])
+(require '[hiccup-bridge.core :as hicv])
 
-(html->hiccup "<foo><bar>buzz</bar></foo>")
+(hicv/html->hiccup "<foo><bar>buzz</bar></foo>")
 ;; -> ([:foo [:bar "buzz"]])
 ```
 ### Html to Hiccup
