@@ -1,5 +1,5 @@
 (ns leiningen.hicv
-  (:use to-hiccup.core))
+  (:use hiccup-bridge.core))
 
 (defn ^:no-project-needed hicv
   "Convert html into hiccup and vice verse"
