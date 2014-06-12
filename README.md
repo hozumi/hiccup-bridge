@@ -33,7 +33,7 @@ Above HTML will be converted to following and vice versa.
 
 ## Usage
 ### As a library
-Add `[hiccup-bridge "1.0.0-SNAPSHOT"]` to your project dependencies, then:
+Add `[hiccup-bridge "1.0.0-SNAPSHOT"]` to your project plugins (see below), then:
 
 ```clojure
 (require '[hiccup-bridge.core :as hicv])
@@ -87,8 +87,12 @@ total 88
 ```
 
 ## Installation to Leiningen
-```bash
-% lein plugin install hiccup-bridge 1.0.0-SNAPSHOT
+Add hiccup-bridge to `project.clj`.
+
+```clojure
+    :plugins [
+      [hiccup-bridge "1.0.0-SNAPSHOT"]
+    ]
 ```
 
 ## License
