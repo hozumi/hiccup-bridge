@@ -4,4 +4,4 @@
                  [org.clojars.hozumi/clj-glob "0.1.2"]
                  [org.clojars.hozumi/clj-det-enc "1.0.0-SNAPSHOT"]
                  [hiccup "1.0.1"]
-                 [enlive "1.0.1"]])
+                 [enlive "1.1.5"]])
