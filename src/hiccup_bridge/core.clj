@@ -28,13 +28,21 @@
   [file-path extension]
   (-> file-path remove-extension (str extension)))
 
+(defn hiccup->html
+  "Do convert a Clojure/hiccup data to an HTML string."
+  [[x & res :as data]]
+  (if (and (string? x) (re-find #"<.*>" x)) ;; x is doctype?
+    (hic/html x res)
+    (hic/html data)))
+
 (defn hiccup-file->html-file
   "Do convert a Clojure/hiccup file to an HTML one."
   [file-path]
   (spit (replace-extension file-path ".html")
-        (-> (slurp file-path :encoding (enc/detect file-path :default))
+        (-> (slurp file-path
+                   :encoding (enc/detect file-path :default))
             read-string
-            hic/html)))
+            hiccup->html)))
 
 (defn hiccup-files->html-files
   "Batch convert many Clojure/hiccup files to HTML ones."
@@ -45,6 +53,16 @@
                      file-paths)]
     (dorun
      (map hiccup-file->html-file file-paths))))
+
+(defn string->nodes [s]
+  (let [nodes (-> s
+                  java.io.StringReader.
+                  en/html-resource)
+        dtd (when (= :dtd (-> nodes first :type))
+              (re-find #"<.*?>" s))]
+    (if dtd
+      (cons {:type :dtd :data dtd} (rest nodes))
+      nodes)))
 
 (defn add-id&classes->tag
   "Add id and classes to an HTML tag (the hiccup way)."
@@ -62,9 +80,11 @@
   "A parser that makes hiccup data from an enlive node."
   [node]
   (if (map? node)
-    ;; for comment node {:type :comment, :data "[if IE]> ..."}
-    (if (= :comment (:type node))
-      (str "<!--" (:data node) "-->")
+    (condp = (:type node)
+      ;; for doctype node {:type :dtd, :data "html"}
+      :dtd (:data node)
+      ;; for comment node {:type :comment, :data "[if IE]> ..."}
+      :comment (str "<!--" (:data node) "-->")
       (let [{:keys [tag attrs content]} node
             tag (add-id&classes->tag tag attrs)
             attrs (dissoc attrs :class :id)
@@ -73,6 +93,14 @@
                                     (re-matches #"\n\s*" %))) content)]
         (reduce conj hiccup-form (map enlive-node->hiccup cnts))))
     node))
+
+(defn html->hiccup
+  "Do convert an HTML string to Clojure/hiccup data."
+  [s]
+  (let [nodes (string->nodes s)]
+    (->> (map enlive-node->hiccup nodes)
+         (filter #(not (and (string? %)
+                            (re-matches #"\n\s*" %)))))))
 
 (defn url? [s]
   (re-matches #"https?://.*" s))
@@ -83,25 +111,12 @@
     (java.net.URL. resource-path)
     (io/reader resource-path :encoding (enc/detect resource-path :default))))
 
-(defn html->hiccup
-  "Do convert an HTML string to Clojure/hiccup data."
-  [s]
-  (let [nodes (-> s
-                  java.io.StringReader.
-                  en/html-resource)]
-    (->> (map enlive-node->hiccup nodes)
-         (filter #(not (and (string? %)
-                            (re-matches #"\n\s*" %)))))))
-
 (defn html-file->hiccup
   "Make Clojure/hiccup data from a HTML file."
   [resource-path]
-  (let [nodes (-> resource-path
-                  get-resource
-                  en/html-resource)]
-    (->> (map enlive-node->hiccup nodes)
-         (filter #(not (and (string? %)
-                            (re-matches #"\n\s*" %)))))))
+  (-> resource-path
+      get-resource
+      html->hiccup))
 
 (defn ensure-under-hicv-dir
   "Check if files passed as command line arguements are under hicv/ directory."

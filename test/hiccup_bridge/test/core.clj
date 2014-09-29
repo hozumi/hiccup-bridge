@@ -30,4 +30,8 @@
   (is (= '([:foo#me.class1.class2 [:bar "buzz"]])
          (html->hiccup (str "<foo id=\"me\" class=\"class1 class2\">"
                             "<bar>buzz</bar>"
-                            "</foo>")))))
+                            "</foo>"))))
+  (is (= (html->hiccup "<!DOCTYPE html><html><body>Hello</body></html>")
+         '("<!DOCTYPE html>" [:html [:body "Hello"]])))
+  (is (= (hiccup->html '("<!DOCTYPE html>" [:html [:body "Hello"]]))
+         "<!DOCTYPE html><html><body>Hello</body></html>")))
