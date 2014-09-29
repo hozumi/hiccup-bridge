@@ -5,7 +5,7 @@
             [clojure.java.io :as io]
             [clojure.pprint :as pp]
             [clojure.edn :as edn]
-            [hozumi.det-enc :as enc]
+            [det-enc.core :as det]
             [org.satta.glob :as glob]))
 
 (def ^{:private true} hicv-dir-name "hicv")
@@ -41,7 +41,7 @@
   [file-path]
   (spit (replace-extension file-path ".html")
         (-> (slurp file-path
-                   :encoding (enc/detect file-path :default))
+                   :encoding (det/detect file-path :default))
             edn/read-string
             hiccup->html)))
 
@@ -110,7 +110,7 @@
   [resource-path]
   (if (url? resource-path)
     (java.net.URL. resource-path)
-    (io/reader resource-path :encoding (enc/detect resource-path :default))))
+    (io/reader resource-path :encoding (det/detect resource-path :default))))
 
 (defn html-file->hiccup
   "Make Clojure/hiccup data from a HTML file."
