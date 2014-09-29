@@ -4,6 +4,7 @@
             [hiccup.core :as hic]
             [clojure.java.io :as io]
             [clojure.pprint :as pp]
+            [clojure.edn :as edn]
             [hozumi.det-enc :as enc]
             [org.satta.glob :as glob]))
 
@@ -41,7 +42,7 @@
   (spit (replace-extension file-path ".html")
         (-> (slurp file-path
                    :encoding (enc/detect file-path :default))
-            read-string
+            edn/read-string
             hiccup->html)))
 
 (defn hiccup-files->html-files
