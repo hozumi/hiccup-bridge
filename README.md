@@ -33,7 +33,7 @@ Above HTML will be converted to following and vice versa.
 
 ## Usage
 ### As a library
-Add `[hiccup-bridge "1.0.0-SNAPSHOT"]` to your project plugins (see below), then:
+Add `[hiccup-bridge "1.0.0"]` to your project plugins (see below), then:
 
 ```clojure
 (require '[hiccup-bridge.core :as hicv])
@@ -91,7 +91,7 @@ Add hiccup-bridge to `project.clj`.
 
 ```clojure
     :plugins [
-      [hiccup-bridge "1.0.0-SNAPSHOT"]
+      [hiccup-bridge "1.0.0"]
     ]
 ```
 
