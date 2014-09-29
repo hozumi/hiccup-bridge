@@ -109,8 +109,8 @@
 (defn get-resource
   [resource-path]
   (if (url? resource-path)
-    (java.net.URL. resource-path)
-    (io/reader resource-path :encoding (det/detect resource-path :default))))
+    (slurp resource-path)
+    (slurp resource-path :encoding (det/detect resource-path :default))))
 
 (defn html-file->hiccup
   "Make Clojure/hiccup data from a HTML file."
