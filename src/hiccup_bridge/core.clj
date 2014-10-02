@@ -90,8 +90,8 @@
             tag (add-id&classes->tag tag attrs)
             attrs (dissoc attrs :class :id)
             hiccup-form (if (empty? attrs) [tag] [tag attrs])
-            cnts (filter #(not (and (string? %)
-                                    (re-matches #"\n\s*" %))) content)]
+            cnts (remove #(and (string? %)
+                               (re-matches #"\n\s*" %)) content)]
         (reduce conj hiccup-form (map enlive-node->hiccup cnts))))
     node))
 
@@ -100,8 +100,8 @@
   [s]
   (let [nodes (html->nodes s)]
     (->> (map enlive-node->hiccup nodes)
-         (filter #(not (and (string? %)
-                            (re-matches #"\n\s*" %)))))))
+         (remove #(and (string? %)
+                       (re-matches #"\n\s*" %))))))
 
 (defn url? [s]
   (re-matches #"https?://.*" s))
