@@ -32,7 +32,7 @@
 (defn hiccup->html
   "Do convert a Clojure/hiccup data to an HTML string."
   [[x & res :as data]]
-  (if (and (string? x) (re-find #"<.*>" x)) ;; x is doctype?
+  (if (and (string? x) (re-find #"<.*>" x)) ;; Is x doctype?
     (hic/html x res)
     (hic/html data)))
 
