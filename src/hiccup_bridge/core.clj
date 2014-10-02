@@ -55,7 +55,7 @@
     (dorun
      (map hiccup-file->html-file file-paths))))
 
-(defn string->nodes [s]
+(defn html->nodes [s]
   (let [nodes (-> s
                   java.io.StringReader.
                   en/html-resource)
@@ -98,7 +98,7 @@
 (defn html->hiccup
   "Do convert an HTML string to Clojure/hiccup data."
   [s]
-  (let [nodes (string->nodes s)]
+  (let [nodes (html->nodes s)]
     (->> (map enlive-node->hiccup nodes)
          (filter #(not (and (string? %)
                             (re-matches #"\n\s*" %)))))))
