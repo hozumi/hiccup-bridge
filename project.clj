@@ -1,4 +1,4 @@
-(defproject hiccup-bridge "1.0.0"
+(defproject hiccup-bridge "1.0.1"
   :description "Hiccup to html, html to hiccup."
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojars.hozumi/clj-glob "0.1.2"]

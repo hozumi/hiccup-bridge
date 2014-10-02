@@ -91,14 +91,14 @@ Add hiccup-bridge to `project.clj`.
 
 ```clojure
     :plugins [
-      [hiccup-bridge "1.0.0"]
+      [hiccup-bridge "1.0.1"]
     ]
 ```
 
 You can also use plugins for any project without modifying profect.clj by specifing them in your :user profile of `~/.lein/profiles.clj`.
 
 ```clojure
-{:user {:plugins [[hiccup-bridge "1.0.0"]]}}
+{:user {:plugins [[hiccup-bridge "1.0.1"]]}}
 ```
 
 ## License
