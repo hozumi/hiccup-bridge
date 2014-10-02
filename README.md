@@ -33,7 +33,7 @@ Above HTML will be converted to following and vice versa.
 
 ## Usage
 ### As a library
-Add `[hiccup-bridge "1.0.0"]` to your project plugins (see below), then:
+Add hiccup-bridge to your `project.clj`, then:
 
 ```clojure
 (require '[hiccup-bridge.core :as hicv])
@@ -93,6 +93,12 @@ Add hiccup-bridge to `project.clj`.
     :plugins [
       [hiccup-bridge "1.0.0"]
     ]
+```
+
+You can also use plugins for any project without modifying profect.clj by specifing them in your :user profile of `~/.lein/profiles.clj`.
+
+```clojure
+{:user {:plugins [[hiccup-bridge "1.0.0"]]}}
 ```
 
 ## License
